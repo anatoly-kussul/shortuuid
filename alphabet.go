@@ -17,10 +17,20 @@ type alphabet struct {
 	len      int64
 	encLen   int64
 	maxBytes int64
+	indexMap map[rune]int64
 }
 
 // Remove duplicates and sort it to ensure reproducibility.
 func newAlphabet(s string) alphabet {
+	a := newEncodeAlphabet(s)
+	a.indexMap = make(map[rune]int64, len(a.chars))
+	for index, c := range a.chars {
+		a.indexMap[c] = int64(index)
+	}
+	return a
+}
+
+func newEncodeAlphabet(s string) alphabet {
 	abc := []rune(s)
 	slices.Sort(abc)
 	abc = slices.Compact(abc)
@@ -64,17 +74,12 @@ func (a *alphabet) Length() int64 {
 // Index returns the index of the first instance of t in the alphabet, or an
 // error if t is not present.
 func (a *alphabet) Index(t rune) (int64, error) {
-	i, j := 0, int(a.len)
-	for i < j {
-		h := int(uint(i+j) >> 1)
-		if a.chars[h] < t {
-			i = h + 1
-		} else {
-			j = h
-		}
+	if a.indexMap == nil {
+		return 0, fmt.Errorf("index map is not initialized")
 	}
-	if i >= int(a.len) || a.chars[i] != t {
+	i, ok := a.indexMap[t]
+	if !ok {
 		return 0, fmt.Errorf("element '%v' is not part of the alphabet", t)
 	}
-	return int64(i), nil
+	return i, nil
 }
